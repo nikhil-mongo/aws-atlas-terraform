@@ -13,7 +13,7 @@ resource "mongodbatlas_cluster" "cluster-atlas" {
   name                         = "cluster-atlas"
   num_shards                   = 1
   replication_factor           = 3
-  backup_enabled               = true
+  provider_backup_enabled      = true
   auto_scaling_disk_gb_enabled = true
   mongo_db_major_version       = "4.0"
 
