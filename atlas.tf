@@ -9,33 +9,36 @@ resource "mongodbatlas_project" "aws_atlas" {
 }
 
 resource "mongodbatlas_cluster" "cluster-atlas" {
-  project_id                   = mongodbatlas_project.aws_atlas.id
-  name                         = "cluster-atlas"
-  num_shards                   = 1
-  replication_factor           = 3
+  project_id   = mongodbatlas_project.aws_atlas.id
+  name         = "cluster-atlas"
+  cluster_type = "REPLICASET"
+  replication_specs {
+    num_shards = 1
+    regions_config {
+      region_name     = "US_EAST_1"
+      electable_nodes = 3
+      priority        = 7
+      read_only_nodes = 0
+    }
+  }
   provider_backup_enabled      = true
   auto_scaling_disk_gb_enabled = true
-  mongo_db_major_version       = "4.0"
+  mongo_db_major_version       = "4.2"
 
-  //Provider settings
+  //Provider Settings "block"
   provider_name               = "AWS"
   disk_size_gb                = 10
-  provider_disk_iops          = 100
-  provider_volume_type        = "STANDARD"
-  provider_encrypt_ebs_volume = true
   provider_instance_size_name = "M10"
-  provider_region_name        = var.atlas_region
-  depends_on                  = [mongodbatlas_project.aws_atlas]
 }
 
 resource "mongodbatlas_database_user" "db-user" {
-  username = var.atlas_dbuser
-  password = var.atlas_dbpassword
-  database_name = "admin"
-  project_id = mongodbatlas_project.aws_atlas.id
-  roles{
-      role_name = "readWrite"
-      database_name = "admin"
+  username           = var.atlas_dbuser
+  password           = var.atlas_dbpassword
+  auth_database_name = "admin"
+  project_id         = mongodbatlas_project.aws_atlas.id
+  roles {
+    role_name     = "readWrite"
+    database_name = "admin"
   }
   depends_on = [mongodbatlas_project.aws_atlas]
 }
@@ -59,4 +62,10 @@ resource "mongodbatlas_network_peering" "aws-atlas" {
   route_table_cidr_block = aws_vpc.primary.cidr_block
   vpc_id                 = aws_vpc.primary.id
   aws_account_id         = var.aws_account_id
+}
+
+resource "mongodbatlas_project_ip_whitelist" "test" {
+  project_id = mongodbatlas_project.aws_atlas.id
+  cidr_block = aws_vpc.primary.cidr_block
+  comment    = "cidr block for AWS VPC"
 }
